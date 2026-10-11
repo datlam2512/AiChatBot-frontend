@@ -1,22 +1,21 @@
 // Frontend-only types. Align these with your FastAPI response models later.
 export type Role = "user" | "assistant";
 
-export interface Message {
-  id: string;
-  role: Role;
-  content: string;
-  createdAt: string; // ISO string
-}
-
 export interface Conversation {
-  id: string;
+  id: number;
   title: string;
   createdAt: string;
   updatedAt: string;
 }
 
-/** Shape sent to the backend: { messages: ChatRequestMessage[] } */
+export interface Message {
+  id: string | number;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+}
+
 export interface ChatRequestMessage {
-  role: Role;
+  role: "user" | "assistant";
   content: string;
 }

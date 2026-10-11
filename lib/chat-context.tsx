@@ -24,10 +24,9 @@ interface ChatContextValue {
   conversations: Conversation[];
   messages: Record<string, Message[]>;
   status: Record<string, ConvStatus>;
-  loadMessages: (id: string) => void;
-  /** Pass null to start a new conversation. Returns the conversation id. */
-  sendMessage: (id: string | null, text: string) => string;
-  retry: (id: string) => void;
+  loadMessages: (id: number) => void;
+  sendMessage: (id: number | null, text: string) => Promise<number>;
+  retry: (id: number) => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -100,7 +99,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           },
         ]);
 
-        await api.streamMessage(history, (chunk) => {
+        await api.streamMessage(Number(id), history, (chunk) => {
           setMsgs(id, (messages) =>
             messages.map((message) =>
               message.id === assistantId
@@ -117,7 +116,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
         setConversations((p) =>
           p.map((c) =>
-            c.id === id ? { ...c, updatedAt: new Date().toISOString() } : c,
+            String(c.id) === id
+              ? { ...c, updatedAt: new Date().toISOString() }
+              : c,
           ),
         );
       } catch {
@@ -131,54 +132,66 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   );
 
   const sendMessage = useCallback(
-    (id: string | null, text: string) => {
-      let convId = id;
-      if (!convId) {
-        convId = newId(); // temporary frontend id
-        const now = new Date().toISOString();
-        const conv: Conversation = {
-          id: convId,
-          title: text.length > 40 ? text.slice(0, 40) + "…" : text,
-          createdAt: now,
-          updatedAt: now,
-        };
-        setConversations((p) => [conv, ...p]);
-        api.createConversation(conv).catch(() => {});
-      }
-      loaded.current.add(convId);
-      setMsgs(convId, (m) => [
-        ...m,
-        {
-          id: newId(),
-          role: "user",
-          content: text,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-      void run(convId);
-      return convId;
-    },
-    [run, setMsgs],
-  );
+  async (id: number | null, text: string): Promise<number> => {
+    let convId = id;
 
-  const loadMessages = useCallback(
-    (id: string) => {
-      if (loaded.current.has(id)) return;
-      loaded.current.add(id);
-      api
-        .getMessages(id)
-        .then((fetched) => setMsgs(id, (m) => (m.length ? m : fetched)))
-        .catch(() => loaded.current.delete(id));
-    },
-    [setMsgs],
-  );
+    if (convId === null) {
+      const title =
+        text.length > 40 ? text.slice(0, 40) + "…" : text;
 
-  const retry = useCallback(
-    (id: string) => {
-      void run(id);
-    },
-    [run],
-  );
+      const conversation = await api.createConversation(title);
+
+      convId = conversation.id;
+
+      setConversations((prev) => [conversation, ...prev]);
+    }
+
+    const key = String(convId);
+
+    loaded.current.add(key);
+
+    setMsgs(key, (messages) => [
+      ...messages,
+      {
+        id: newId(),
+        role: "user",
+        content: text,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+
+    void run(key);
+
+    return convId;
+  },
+  [run, setMsgs],
+);
+const loadMessages = useCallback(
+  (id: number) => {
+    const key = String(id);
+
+    if (loaded.current.has(key)) return;
+
+    loaded.current.add(key);
+
+    api
+      .getMessages(id)
+      .then((fetched) =>
+        setMsgs(key, (messages) =>
+          messages.length ? messages : fetched,
+        ),
+      )
+      .catch(() => loaded.current.delete(key));
+  },
+  [setMsgs],
+);
+
+const retry = useCallback(
+  (id: number) => {
+    void run(String(id));
+  },
+  [run],
+);
 
   return (
     <ChatContext.Provider
