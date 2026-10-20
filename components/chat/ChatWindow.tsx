@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useChat } from "@/lib/chat-context";
 import MessageList from "./MessageList";
+import PdfUpload from "@/components/chat/PdfUpload";
 import ChatInput from "./ChatInput";
 import { useEffect, useState } from "react";
 const SUGGESTIONS = [
@@ -91,12 +92,28 @@ export default function ChatWindow({
           onRetry={() => {}}
         />
       )}
-      <ChatInput
-        onSend={(text) => {
-          void handleSend(text);
-        }}
-        sending={loading || creating}
-      />
+
+      <div className="shrink-0 bg-white px-3 pb-4 pt-2 dark:bg-neutral-950">
+        <div className="mx-auto flex w-full max-w-3xl items-end gap-2">
+          {/* Nút thêm tài liệu */}
+          <div className="mb-5 ">
+            <PdfUpload />
+          </div>
+          {/* Ô chat hiện tại */}
+          <div className="min-w-0 flex-1">
+            <ChatInput
+              onSend={(text) => {
+                void handleSend(text);
+              }}
+              sending={loading || creating}
+            />
+          </div>
+        </div>
+
+        <p className="mt-2 text-center text-[11px] text-neutral-400">
+          AI có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.
+        </p>
+      </div>
     </div>
   );
 }

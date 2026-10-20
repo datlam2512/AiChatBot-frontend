@@ -117,3 +117,40 @@ export async function streamMessage(
 
   if (remaining) onChunk(remaining);
 }
+
+export interface UploadDocumentResponse {
+  message: string;
+  document_id: number;
+  filename: string;
+  pages: number;
+}
+
+export async function uploadPdf(
+  file: File
+): Promise<UploadDocumentResponse> {
+
+  const formData = new FormData();
+
+  formData.append("file", file);
+
+  const response = await fetch(
+    `${API_BASE}/api/documents/upload`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+
+    const message =
+      typeof error?.detail === "string"
+        ? error.detail
+        : "Upload PDF failed";
+
+    throw new Error(message);
+  }
+
+  return response.json();
+}
