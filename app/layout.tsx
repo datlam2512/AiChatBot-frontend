@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-// @ts-expect-error Global CSS is loaded by Next.js and has no TypeScript module declaration.
 import "./globals.css";
 import { ChatProvider } from "@/lib/chat-context";
 import ChatLayout from "@/components/layout/ChatLayout";

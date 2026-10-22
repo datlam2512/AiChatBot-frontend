@@ -27,10 +27,23 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    throw new Error(`Request failed (${res.status})`);
+    await throwRequestError(res);
   }
 
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
+}
+
+async function throwRequestError(response: Response): Promise<never> {
+  const body: { detail?: unknown } | null = await response
+    .json()
+    .catch(() => null);
+  const message =
+    typeof body?.detail === "string"
+      ? body.detail
+      : `Request failed (${response.status})`;
+
+  throw new Error(message);
 }
 
 function mapConversation(data: ConversationResponse): Conversation {
@@ -142,15 +155,29 @@ export async function uploadPdf(
   );
 
   if (!response.ok) {
-    const error = await response.json().catch(() => null);
-
-    const message =
-      typeof error?.detail === "string"
-        ? error.detail
-        : "Upload PDF failed";
-
-    throw new Error(message);
+    await throwRequestError(response);
   }
 
   return response.json();
+}
+
+export type DocumentItem = {
+  id: number;
+  filename: string;
+  created_at: string;
+  chunk_count: number;
+};
+
+export async function getAllDocuments(): Promise<DocumentItem[]> {
+  return http<DocumentItem[]>("/api/documents");
+}
+
+export async function getDocument(documentId: number): Promise<DocumentItem> {
+  return http<DocumentItem>(`/api/documents/${documentId}`);
+}
+
+export async function deleteDocument(documentId: number): Promise<void> {
+  await http<void>(`/api/documents/${documentId}`, {
+    method: "DELETE",
+  });
 }

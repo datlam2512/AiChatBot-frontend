@@ -1,6 +1,6 @@
 "use client";
 import { useState, type ReactNode } from "react";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import Sidebar from "@/components/sidebar/Sidebar";
 import { useChat } from "@/lib/chat-context";
@@ -8,8 +8,13 @@ import { useChat } from "@/lib/chat-context";
 export default function ChatLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const params = useParams<{ conversationId?: string }>();
+  const pathname = usePathname();
   const { conversations } = useChat();
-  const title = conversations.find((c) => c.id === params.conversationId)?.title ?? "New chat";
+  const title =
+    pathname === "/documents"
+      ? "Quản lý tài liệu"
+      : conversations.find((c) => String(c.id) === params.conversationId)?.title ??
+        "New chat";
 
   return (
     <div className="flex h-dvh bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">

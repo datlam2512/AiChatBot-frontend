@@ -30,7 +30,7 @@ export default function ConversationList({ onNavigate }: { onNavigate?: () => vo
           <h2 className="px-3 pb-1 text-xs font-medium text-neutral-500">{label}</h2>
           <ul className="space-y-0.5">
             {groups[label].map((c) => (
-              <ConversationItem key={c.id} conversation={c} active={c.id === params.conversationId} onNavigate={onNavigate} />
+              <ConversationItem key={c.id} conversation={c} active={String(c.id) === params.conversationId} onNavigate={onNavigate} />
             ))}
           </ul>
         </section>

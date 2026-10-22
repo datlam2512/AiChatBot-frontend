@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Plus, Sparkles } from "lucide-react";
+import { FileText, Plus, Sparkles } from "lucide-react";
 import ConversationList from "./ConversationList";
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
@@ -17,6 +17,16 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
         <ConversationList onNavigate={onNavigate} />
       </nav>
+      <div className="border-t border-neutral-200 p-3 dark:border-neutral-800">
+        <Link
+          href="/documents"
+          onClick={onNavigate}
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-700 transition hover:bg-neutral-200/60 dark:text-neutral-300 dark:hover:bg-neutral-800/60"
+        >
+          <FileText size={16} />
+          Quản lý tài liệu
+        </Link>
+      </div>
     </div>
   );
 }

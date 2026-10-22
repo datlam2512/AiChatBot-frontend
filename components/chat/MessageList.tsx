@@ -16,7 +16,7 @@ export default function MessageList({ messages, loading, error, onRetry }: Props
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
+      <div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6">
         {messages.map((m) => <MessageBubble key={m.id} message={m} />)}
         {loading && <TypingIndicator />}
         {error && (
