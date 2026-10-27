@@ -3,9 +3,11 @@ import { useState } from "react";
 import { Check, Copy, Sparkles } from "lucide-react";
 import type { Message } from "@/types/chat";
 import Markdown from "./Markdown";
+import { useLanguage } from "@/lib/language-context";
 
 export default function MessageBubble({ message }: { message: Message }) {
   const [copied, setCopied] = useState(false);
+  const { t } = useLanguage();
 
   if (message.role === "user") {
     return (
@@ -32,8 +34,8 @@ export default function MessageBubble({ message }: { message: Message }) {
       </div>
       <div className="min-w-0 flex-1">
         <Markdown text={message.content} />
-        <button onClick={copy} aria-label={copied ? "Copied response" : "Copy response"} className="mt-3 flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800 dark:hover:bg-neutral-800 dark:hover:text-neutral-200">
-          {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "Copied" : "Copy"}
+        <button onClick={copy} aria-label={copied ? t("chat.copiedResponse") : t("chat.copyResponse")} className="mt-3 flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800 dark:hover:bg-neutral-800 dark:hover:text-neutral-200">
+          {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? t("chat.copied") : t("chat.copy")}
         </button>
       </div>
     </div>

@@ -3,6 +3,7 @@
 // Swap for react-markdown later if you need more.
 import { useState, type ReactNode } from "react";
 import { Check, Copy } from "lucide-react";
+import { useLanguage } from "@/lib/language-context";
 
 function inline(text: string): ReactNode[] {
   return text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g).map((p, i) => {
@@ -15,6 +16,7 @@ function inline(text: string): ReactNode[] {
 
 function CodeBlock({ lang, code }: { lang: string; code: string }) {
   const [copied, setCopied] = useState(false);
+  const { t } = useLanguage();
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(code);
@@ -27,7 +29,7 @@ function CodeBlock({ lang, code }: { lang: string; code: string }) {
       <div className="flex items-center justify-between bg-neutral-800 px-3 py-1.5 text-xs text-neutral-300">
         <span>{lang || "code"}</span>
         <button onClick={copy} className="flex items-center gap-1 hover:text-white">
-          {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "Copied" : "Copy code"}
+          {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? t("chat.copied") : t("chat.copyCode")}
         </button>
       </div>
       <pre className="overflow-x-auto p-3 text-sm leading-relaxed"><code className="font-mono">{code}</code></pre>

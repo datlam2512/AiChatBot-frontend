@@ -4,11 +4,13 @@ import { AlertCircle, RotateCw } from "lucide-react";
 import type { Message } from "@/types/chat";
 import MessageBubble from "./MessageBubble";
 import TypingIndicator from "./TypingIndicator";
+import { useLanguage } from "@/lib/language-context";
 
 interface Props { messages: Message[]; loading: boolean; error: string | null; onRetry: () => void }
 
 export default function MessageList({ messages, loading, error, onRetry }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -24,7 +26,7 @@ export default function MessageList({ messages, loading, error, onRetry }: Props
             <AlertCircle size={18} className="shrink-0" />
             <span className="flex-1">{error}</span>
             <button onClick={onRetry} className="flex items-center gap-1 rounded-lg px-2 py-1 font-medium hover:bg-red-100 dark:hover:bg-red-900/50">
-              <RotateCw size={14} /> Retry
+              <RotateCw size={14} /> {t("chat.retry")}
             </button>
           </div>
         )}

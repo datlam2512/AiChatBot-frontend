@@ -4,6 +4,7 @@
 import { useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { uploadPdf } from "@/lib/api";
+import { useLanguage } from "@/lib/language-context";
 
 type UploadResult = {
   document_id: number;
@@ -13,6 +14,7 @@ type UploadResult = {
 
 export default function PdfUpload() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useLanguage();
 
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<UploadResult | null>(null);
@@ -23,7 +25,7 @@ export default function PdfUpload() {
   ) {
     const file = event.currentTarget.files?.[0];
 
-    // Cho phép chọn lại cùng một file
+    // Allow selecting the same file again.
     event.currentTarget.value = "";
 
     if (!file || uploading) return;
@@ -32,12 +34,12 @@ export default function PdfUpload() {
     setResult(null);
 
     if (!file.name.toLowerCase().endsWith(".pdf")) {
-      setError("Chỉ hỗ trợ file PDF.");
+      setError(t("chat.pdfOnly"));
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      setError("File không được vượt quá 10 MB.");
+      setError(t("chat.fileTooLarge"));
       return;
     }
 
@@ -50,7 +52,7 @@ export default function PdfUpload() {
       setError(
         err instanceof Error
           ? err.message
-          : "Không thể upload PDF."
+          : t("chat.uploadFailed")
       );
     } finally {
       setUploading(false);
@@ -76,10 +78,10 @@ export default function PdfUpload() {
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold">
               {uploading
-                ? "Đang xử lý tài liệu"
+                ? t("chat.processingDocument")
                 : error
-                ? "Upload thất bại"
-                : "Đã thêm tài liệu"}
+                ? t("chat.uploadFailed")
+                : t("chat.uploadSuccess")}
             </p>
 
             {!uploading && (
@@ -89,7 +91,7 @@ export default function PdfUpload() {
                   setError(null);
                   setResult(null);
                 }}
-                aria-label="Đóng thông báo"
+                aria-label={t("chat.closeNotice")}
                 className="rounded-full px-2 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-700"
               >
                 ×
@@ -101,7 +103,7 @@ export default function PdfUpload() {
             <div className="flex items-center gap-3">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-800 dark:border-t-white" />
               <p className="text-xs text-neutral-500">
-                Đang đọc PDF, tạo embeddings và lưu tài liệu...
+                {t("chat.readingPdf")}
               </p>
             </div>
           )}
@@ -116,10 +118,13 @@ export default function PdfUpload() {
                 📄 {result.filename}
               </p>
               <p className="text-neutral-500">
-                {result.pages} trang · ID {result.document_id}
+                {t("chat.pagesAndId", {
+                  pages: result.pages,
+                  id: result.document_id,
+                })}
               </p>
               <p className="text-xs text-green-600">
-                Đã thêm vào kho tài liệu RAG
+                {t("chat.addedToRag")}
               </p>
             </div>
           )}
@@ -130,8 +135,8 @@ export default function PdfUpload() {
         type="button"
         disabled={uploading}
         onClick={() => inputRef.current?.click()}
-        aria-label="Thêm tài liệu PDF"
-        title="Thêm tài liệu PDF"
+        aria-label={t("chat.addPdf")}
+        title={t("chat.addPdf")}
         className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-600 transition hover:bg-neutral-100 active:scale-95 disabled:cursor-wait disabled:opacity-50 dark:text-neutral-300 dark:hover:bg-neutral-700"
       >
         <svg

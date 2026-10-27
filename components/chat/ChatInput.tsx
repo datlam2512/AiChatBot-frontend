@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useLanguage } from "@/lib/language-context";
 
 export default function ChatInput({
   onSend,
@@ -13,6 +14,7 @@ export default function ChatInput({
   leadingAction?: ReactNode;
 }) {
   const [value, setValue] = useState("");
+  const { t } = useLanguage();
   const ref = useRef<HTMLTextAreaElement>(null);
   const canSend = value.trim().length > 0 && !sending;
 
@@ -43,8 +45,8 @@ export default function ChatInput({
               submit();
             }
           }}
-          placeholder="Message AI Chat"
-          aria-label="Message"
+          placeholder={t("chat.messagePlaceholder")}
+          aria-label={t("chat.messageLabel")}
           className="block max-h-[200px] w-full resize-none bg-transparent px-2 py-1 text-[15px] leading-6 outline-none placeholder:text-neutral-400"
         />
         <div className="mt-1 flex items-center justify-between">
@@ -52,7 +54,7 @@ export default function ChatInput({
           <button
             onClick={submit}
             disabled={!canSend}
-            aria-label="Send message"
+            aria-label={t("chat.send")}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
           >
             {sending ? <Loader2 size={18} className="animate-spin" /> : <ArrowUp size={18} />}

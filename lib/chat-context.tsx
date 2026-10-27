@@ -13,6 +13,8 @@ import {
   type ReactNode,
 } from "react";
 import * as api from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+import { useLanguage } from "@/lib/language-context";
 import type { Conversation, Message } from "@/types/chat";
 
 interface ConvStatus {
@@ -26,6 +28,7 @@ interface ChatContextValue {
   status: Record<string, ConvStatus>;
   loadMessages: (id: number) => void;
   sendMessage: (id: number | null, text: string) => Promise<number>;
+  deleteConversation: (id: number) => Promise<void>;
   retry: (id: number) => void;
 }
 
@@ -41,6 +44,8 @@ const newId = () =>
   Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 export function ChatProvider({ children }: { children: ReactNode }) {
+  const { token, ready } = useAuth();
+  const { t } = useLanguage();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [status, setStatus] = useState<Record<string, ConvStatus>>({});
@@ -48,16 +53,30 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const loaded = useRef(new Set<string>());
 
   useEffect(() => {
+    if (!ready) return;
+
+    let active = true;
+    msgsRef.current = {};
+    loaded.current.clear();
+    setConversations([]);
+    setMessages({});
+    setStatus({});
+
+    if (!token) return;
+
     api
       .getConversations()
-      .then((list) =>
-        setConversations((prev) => [
-          ...prev,
-          ...list.filter((c) => !prev.some((p) => p.id === c.id)),
-        ]),
-      )
-      .catch(() => {});
-  }, []);
+      .then((list) => {
+        if (active) setConversations(list);
+      })
+      .catch((error: unknown) => {
+        if (active) console.error("Failed to load conversations:", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [ready, token]);
 
   const setMsgs = useCallback(
     (id: string, update: (m: Message[]) => Message[]) => {
@@ -124,11 +143,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       } catch {
         setSt(id, {
           loading: false,
-          error: "Something went wrong. Please try again.",
+          error: t("auth.genericError"),
         });
       }
     },
-    [setMsgs, setSt],
+    [setMsgs, setSt, t],
   );
 
   const sendMessage = useCallback(
@@ -173,18 +192,45 @@ const loadMessages = useCallback(
     if (loaded.current.has(key)) return;
 
     loaded.current.add(key);
+    setSt(key, { loading: true, error: null });
 
     api
       .getMessages(id)
-      .then((fetched) =>
+      .then((fetched) => {
         setMsgs(key, (messages) =>
           messages.length ? messages : fetched,
-        ),
-      )
-      .catch(() => loaded.current.delete(key));
+        );
+        setSt(key, { loading: false, error: null });
+      })
+      .catch(() => {
+        loaded.current.delete(key);
+        setSt(key, {
+          loading: false,
+          error: t("chat.loadFailed"),
+        });
+      });
   },
-  [setMsgs],
+  [setMsgs, setSt, t],
 );
+
+const deleteConversation = useCallback(async (id: number) => {
+  await api.deleteConversation(id);
+
+  const key = String(id);
+  setConversations((current) => current.filter((conversation) => conversation.id !== id));
+  loaded.current.delete(key);
+  delete msgsRef.current[key];
+  setMessages((current) => {
+    const next = { ...current };
+    delete next[key];
+    return next;
+  });
+  setStatus((current) => {
+    const next = { ...current };
+    delete next[key];
+    return next;
+  });
+}, []);
 
 const retry = useCallback(
   (id: number) => {
@@ -201,6 +247,7 @@ const retry = useCallback(
         status,
         loadMessages,
         sendMessage,
+        deleteConversation,
         retry,
       }}
     >

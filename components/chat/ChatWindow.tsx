@@ -5,14 +5,22 @@ import MessageList from "./MessageList";
 import PdfUpload from "@/components/chat/PdfUpload";
 import ChatInput from "./ChatInput";
 import { useEffect, useState } from "react";
-import { Code2, Compass, FileSearch, Lightbulb, Sparkles } from "lucide-react";
+import {
+  Code2,
+  Compass,
+  FileSearch,
+  Lightbulb,
+  LoaderCircle,
+  Sparkles,
+} from "lucide-react";
+import { useLanguage } from "@/lib/language-context";
 
 const SUGGESTIONS = [
-  { text: "Explain Python", detail: "Learn a new programming language", icon: Code2 },
-  { text: "What is an API?", detail: "Understand how apps connect", icon: Compass },
-  { text: "How does an LLM work?", detail: "Explore how AI generates answers", icon: Lightbulb },
-  { text: "Explain RAG", detail: "Learn about AI and your documents", icon: FileSearch },
-];
+  { text: "chat.suggestion.python", detail: "chat.suggestion.pythonDetail", icon: Code2 },
+  { text: "chat.suggestion.api", detail: "chat.suggestion.apiDetail", icon: Compass },
+  { text: "chat.suggestion.llm", detail: "chat.suggestion.llmDetail", icon: Lightbulb },
+  { text: "chat.suggestion.rag", detail: "chat.suggestion.ragDetail", icon: FileSearch },
+] as const;
 
 export default function ChatWindow({
   conversationId,
@@ -20,6 +28,7 @@ export default function ChatWindow({
   conversationId?: string;
 }) {
   const { messages, status, sendMessage, retry, loadMessages } = useChat();
+  const { t } = useLanguage();
   const router = useRouter();
   const parsedId = conversationId ? Number(conversationId) : null;
 
@@ -40,13 +49,13 @@ export default function ChatWindow({
   const list = key !== null ? (messages[key] ?? []) : [];
   const st = key !== null ? status[key] : undefined;
 
-  const loading = !!st?.loading;
+  const loading = st?.loading ?? (numericId !== null && !st?.error);
 
   const handleSend = async (text: string) => {
     if (creating || loading) return;
 
     if (conversationId && numericId === null) {
-      setSendError("Invalid conversation ID");
+      setSendError(t("chat.invalidConversation"));
       return;
     }
 
@@ -61,7 +70,7 @@ export default function ChatWindow({
       }
     } catch (error) {
       console.error("Failed to send message:", error);
-      setSendError("Failed to create conversation. Please try again.");
+      setSendError(t("chat.sendFailed"));
     } finally {
       setCreating(false);
     }
@@ -69,22 +78,36 @@ export default function ChatWindow({
 
   return (
     <div className="flex h-full flex-col">
-      {list.length === 0 && !loading ? (
+      {list.length === 0 && (loading || creating) ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-4 text-center"
+        >
+          <LoaderCircle
+            size={28}
+            className="animate-spin text-neutral-500 dark:text-neutral-400"
+          />
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            {creating ? t("chat.starting") : t("chat.loading")}
+          </p>
+        </div>
+      ) : list.length === 0 && !st?.error ? (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-10">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-neutral-700 shadow-sm dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
             <Sparkles size={22} strokeWidth={1.7} />
           </div>
           <h2 className="text-center text-3xl font-semibold tracking-tight sm:text-4xl">
-            How can I help you today?
+            {t("chat.welcome")}
           </h2>
           <p className="mb-8 mt-3 text-center text-sm text-neutral-500 dark:text-neutral-400">
-            Ask a question, explore an idea, or start with a suggestion.
+            {t("chat.welcomeDescription")}
           </p>
           <div className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
             {SUGGESTIONS.map(({ text, detail, icon: Icon }) => (
               <button
                 key={text}
-                onClick={() => handleSend(text)}
+                onClick={() => handleSend(t(text))}
                 disabled={creating || loading}
                 className="group flex min-h-[76px] items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-left transition hover:border-neutral-300 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700 dark:hover:bg-neutral-800"
               >
@@ -92,8 +115,8 @@ export default function ChatWindow({
                   <Icon size={17} strokeWidth={1.8} />
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-sm font-medium">{text}</span>
-                  <span className="mt-0.5 block text-xs text-neutral-500 dark:text-neutral-400">{detail}</span>
+                  <span className="block text-sm font-medium">{t(text)}</span>
+                  <span className="mt-0.5 block text-xs text-neutral-500 dark:text-neutral-400">{t(detail)}</span>
                 </span>
               </button>
             ))}
@@ -104,7 +127,11 @@ export default function ChatWindow({
           messages={list}
           loading={loading}
           error={st?.error ?? null}
-          onRetry={() => {}}
+          onRetry={() => {
+            if (numericId === null) return;
+            if (list.length === 0) loadMessages(numericId);
+            else retry(numericId);
+          }}
         />
       )}
 
@@ -123,7 +150,7 @@ export default function ChatWindow({
             leadingAction={<PdfUpload />}
           />
           <p className="mt-3 text-center text-[11px] text-neutral-400">
-            AI can make mistakes. Check important information.
+            {t("chat.disclaimer")}
           </p>
         </div>
       </div>

@@ -18,14 +18,16 @@ import {
   uploadPdf,
   type DocumentItem,
 } from "@/lib/api";
+import { useLanguage } from "@/lib/language-context";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Đã xảy ra lỗi không xác định.";
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export default function DocumentsPage() {
+  const { language, t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,11 +49,15 @@ export default function DocumentsPage() {
     try {
       setDocuments(await getAllDocuments());
     } catch (loadError) {
-      setError(`Không thể tải danh sách tài liệu: ${getErrorMessage(loadError)}`);
+      setError(
+        t("docs.listLoadFailed", {
+          error: getErrorMessage(loadError, t("docs.unknownError")),
+        }),
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadDocuments();
@@ -67,12 +73,12 @@ export default function DocumentsPage() {
     setSuccess("");
 
     if (!file.name.toLowerCase().endsWith(".pdf")) {
-      setError("Chỉ hỗ trợ file PDF.");
+      setError(t("chat.pdfOnly"));
       return;
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      setError("File không được vượt quá 10 MB.");
+      setError(t("chat.fileTooLarge"));
       return;
     }
 
@@ -80,17 +86,28 @@ export default function DocumentsPage() {
 
     try {
       const uploaded = await uploadPdf(file);
-      setSuccess(`Đã tải lên "${uploaded.filename}" (${uploaded.pages} trang).`);
+      setSuccess(
+        t("docs.uploaded", {
+          filename: uploaded.filename,
+          pages: uploaded.pages,
+        }),
+      );
 
       try {
         setDocuments(await getAllDocuments());
       } catch (refreshError) {
         setError(
-          `Tài liệu đã tải lên nhưng không thể làm mới danh sách: ${getErrorMessage(refreshError)}`
+          t("docs.uploadedRefreshFailed", {
+            error: getErrorMessage(refreshError, t("docs.unknownError")),
+          }),
         );
       }
     } catch (uploadError) {
-      setError(`Không thể tải lên tài liệu: ${getErrorMessage(uploadError)}`);
+      setError(
+        t("docs.uploadFailed", {
+          error: getErrorMessage(uploadError, t("docs.unknownError")),
+        }),
+      );
     } finally {
       setUploading(false);
     }
@@ -105,7 +122,11 @@ export default function DocumentsPage() {
     try {
       setDetail(await getDocument(document.id));
     } catch (detailLoadError) {
-      setDetailError(`Không thể tải chi tiết tài liệu: ${getErrorMessage(detailLoadError)}`);
+      setDetailError(
+        t("docs.detailsFailed", {
+          error: getErrorMessage(detailLoadError, t("docs.unknownError")),
+        }),
+      );
     } finally {
       setDetailLoading(false);
     }
@@ -122,13 +143,17 @@ export default function DocumentsPage() {
     try {
       await deleteDocument(document.id);
       setDocuments((current) => current.filter((item) => item.id !== document.id));
-      setSuccess(`Đã xóa "${document.filename}".`);
+      setSuccess(t("docs.deleted", { filename: document.filename }));
       setDocumentToDelete(null);
       if (selectedDocument?.id === document.id) {
         setSelectedDocument(null);
       }
     } catch (deleteError) {
-      setDeleteError(`Không thể xóa tài liệu: ${getErrorMessage(deleteError)}`);
+      setDeleteError(
+        t("docs.deleteFailed", {
+          error: getErrorMessage(deleteError, t("docs.unknownError")),
+        }),
+      );
     } finally {
       setDeletingId(null);
     }
@@ -140,10 +165,10 @@ export default function DocumentsPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Quản lý tài liệu
+              {t("docs.title")}
             </h1>
             <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-              Quản lý các tài liệu được dùng làm kiến thức cho AI Chatbot.
+              {t("docs.description")}
             </p>
           </div>
 
@@ -152,12 +177,12 @@ export default function DocumentsPage() {
               type="button"
               onClick={() => void loadDocuments()}
               disabled={loading}
-              aria-label="Làm mới danh sách"
-              title="Làm mới danh sách"
+              aria-label={t("docs.refreshList")}
+              title={t("docs.refreshList")}
               className="flex h-10 items-center gap-2 rounded-xl border border-neutral-200 px-3 text-sm transition hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-              <span className="hidden sm:inline">Làm mới</span>
+              <span className="hidden sm:inline">{t("docs.refresh")}</span>
             </button>
             <input
               ref={inputRef}
@@ -178,7 +203,7 @@ export default function DocumentsPage() {
               ) : (
                 <Upload size={16} />
               )}
-              {uploading ? "Đang tải lên..." : "Tải PDF lên"}
+              {uploading ? t("docs.uploading") : t("docs.uploadPdf")}
             </button>
           </div>
         </div>
@@ -197,14 +222,14 @@ export default function DocumentsPage() {
           </div>
         )}
 
-        <section className="mt-8" aria-label="Danh sách tài liệu">
+        <section className="mt-8" aria-label={t("docs.list")}>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-              Tài liệu
+              {t("docs.documents")}
             </h2>
             {!loading && (
               <span className="text-xs text-neutral-400">
-                {documents.length} tài liệu
+                {t("docs.documentCount", { count: documents.length })}
               </span>
             )}
           </div>
@@ -212,25 +237,25 @@ export default function DocumentsPage() {
           {loading ? (
             <div className="flex items-center justify-center gap-2 rounded-2xl border border-neutral-200 py-12 text-sm text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
               <LoaderCircle size={18} className="animate-spin" />
-              Đang tải danh sách...
+              {t("docs.loadingList")}
             </div>
           ) : error && documents.length === 0 ? (
             <div className="rounded-2xl border border-neutral-200 px-5 py-10 text-center dark:border-neutral-800">
-              <p className="text-sm text-neutral-500">Không thể hiển thị danh sách tài liệu.</p>
+              <p className="text-sm text-neutral-500">{t("docs.listFailed")}</p>
               <button
                 type="button"
                 onClick={() => void loadDocuments()}
                 className="mt-3 text-sm font-medium underline underline-offset-4"
               >
-                Thử lại
+                {t("docs.retry")}
               </button>
             </div>
           ) : documents.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-300 px-5 py-12 text-center dark:border-neutral-700">
               <FileText size={24} className="mx-auto text-neutral-400" />
-              <p className="mt-3 text-sm font-medium">Chưa có tài liệu nào</p>
+              <p className="mt-3 text-sm font-medium">{t("docs.emptyTitle")}</p>
               <p className="mt-1 text-sm text-neutral-500">
-                Tải lên file PDF để thêm tài liệu vào kho kiến thức.
+                {t("docs.emptyDescription")}
               </p>
             </div>
           ) : (
@@ -248,7 +273,9 @@ export default function DocumentsPage() {
                       <h3 className="truncate text-sm font-medium">{document.filename}</h3>
                       <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                         ID {document.id} · {document.chunk_count} chunks ·{" "}
-                        {new Date(document.created_at).toLocaleDateString("vi-VN")}
+                        {new Date(document.created_at).toLocaleDateString(
+                          language === "vi" ? "vi-VN" : "en-US",
+                        )}
                       </p>
                     </div>
                   </div>
@@ -257,11 +284,11 @@ export default function DocumentsPage() {
                     <button
                       type="button"
                       onClick={() => void handleView(document)}
-                      aria-label={`Xem chi tiết ${document.filename}`}
+                      aria-label={`${t("docs.viewDetails")}: ${document.filename}`}
                       className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
                     >
                       <Eye size={16} />
-                      <span className="hidden sm:inline">Chi tiết</span>
+                      <span className="hidden sm:inline">{t("docs.viewDetails")}</span>
                     </button>
                     <button
                       type="button"
@@ -269,11 +296,13 @@ export default function DocumentsPage() {
                         setDocumentToDelete(document);
                         setDeleteError("");
                       }}
-                      aria-label={`Xóa ${document.filename}`}
+                      aria-label={t("docs.deleteDocument", {
+                        filename: document.filename,
+                      })}
                       className="flex h-9 items-center gap-2 rounded-lg px-3 text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/40"
                     >
                       <Trash2 size={16} />
-                      <span className="hidden sm:inline">Xóa</span>
+                      <span className="hidden sm:inline">{t("docs.delete")}</span>
                     </button>
                   </div>
                 </li>
@@ -299,7 +328,7 @@ export default function DocumentsPage() {
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <h2 id="document-detail-title" className="text-lg font-semibold">
-                  Chi tiết tài liệu
+                  {t("docs.details")}
                 </h2>
                 <p className="mt-1 truncate text-sm text-neutral-500">
                   {selectedDocument.filename}
@@ -308,7 +337,7 @@ export default function DocumentsPage() {
               <button
                 type="button"
                 onClick={() => setSelectedDocument(null)}
-                aria-label="Đóng chi tiết"
+                aria-label={t("docs.closeDetails")}
                 className="rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 dark:hover:bg-neutral-800"
               >
                 <X size={18} />
@@ -318,7 +347,7 @@ export default function DocumentsPage() {
             {detailLoading ? (
               <div className="flex items-center gap-2 py-8 text-sm text-neutral-500">
                 <LoaderCircle size={17} className="animate-spin" />
-                Đang tải chi tiết...
+                {t("docs.loadingDetails")}
               </div>
             ) : detailError ? (
               <p role="alert" className="py-6 text-sm text-red-600 dark:text-red-400">
@@ -331,17 +360,19 @@ export default function DocumentsPage() {
                   <dd className="font-medium">{detail.id}</dd>
                 </div>
                 <div className="flex justify-between gap-4 py-3">
-                  <dt className="text-neutral-500">Tên file</dt>
+                  <dt className="text-neutral-500">{t("docs.fileName")}</dt>
                   <dd className="break-all text-right font-medium">{detail.filename}</dd>
                 </div>
                 <div className="flex justify-between gap-4 py-3">
-                  <dt className="text-neutral-500">Số chunks</dt>
+                  <dt className="text-neutral-500">{t("docs.chunks")}</dt>
                   <dd className="font-medium">{detail.chunk_count}</dd>
                 </div>
                 <div className="flex justify-between gap-4 py-3">
-                  <dt className="text-neutral-500">Ngày tạo</dt>
+                  <dt className="text-neutral-500">{t("docs.created")}</dt>
                   <dd className="text-right font-medium">
-                    {new Date(detail.created_at).toLocaleString("vi-VN")}
+                    {new Date(detail.created_at).toLocaleString(
+                      language === "vi" ? "vi-VN" : "en-US",
+                    )}
                   </dd>
                 </div>
               </dl>
@@ -373,14 +404,12 @@ export default function DocumentsPage() {
               </div>
               <div className="min-w-0 pt-1">
                 <h2 id="delete-document-title" className="text-lg font-semibold">
-                  Xóa tài liệu?
+                  {t("docs.deleteTitle")}
                 </h2>
                 <p id="delete-document-description" className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">
-                  Bạn có chắc muốn xóa{" "}
-                  <span className="break-all font-medium text-neutral-800 dark:text-neutral-200">
-                    {documentToDelete.filename}
-                  </span>
-                  ? Tài liệu và các dữ liệu liên quan sẽ bị xóa vĩnh viễn.
+                  {t("docs.deleteDescription", {
+                    filename: documentToDelete.filename,
+                  })}
                 </p>
               </div>
               <button
@@ -390,7 +419,7 @@ export default function DocumentsPage() {
                   setDeleteError("");
                 }}
                 disabled={deletingId !== null}
-                aria-label="Đóng hộp thoại xóa"
+                aria-label={t("docs.closeDelete")}
                 className="ml-auto rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 disabled:opacity-50 dark:hover:bg-neutral-800"
               >
                 <X size={18} />
@@ -413,7 +442,7 @@ export default function DocumentsPage() {
                 disabled={deletingId !== null}
                 className="h-10 rounded-xl border border-neutral-200 px-4 text-sm font-medium transition hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
               >
-                Hủy
+                {t("docs.cancel")}
               </button>
               <button
                 type="button"
@@ -422,7 +451,9 @@ export default function DocumentsPage() {
                 className="flex h-10 items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-wait disabled:opacity-60"
               >
                 {deletingId !== null && <LoaderCircle size={16} className="animate-spin" />}
-                {deletingId !== null ? "Đang xóa..." : "Xóa tài liệu"}
+                {deletingId !== null
+                  ? t("docs.deleting")
+                  : t("docs.delete")}
               </button>
             </div>
           </section>
