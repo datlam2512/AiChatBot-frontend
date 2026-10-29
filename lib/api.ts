@@ -1,6 +1,8 @@
 import type { ChatRequestMessage, Conversation, Message } from "@/types/chat";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://localhost:8000";
 const AUTH_TOKEN_KEY = "ai-chat-access-token";
 
 interface ConversationResponse {
